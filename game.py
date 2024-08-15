@@ -3,6 +3,8 @@ import random
 import pygame
 import sys
 import math
+import torch
+from checks import check_three_in_a_row, check_blocked_opportunity, check_blunder, evaluate_board_state
 
 class Connect4_AI_Game:
 
@@ -243,7 +245,10 @@ class Connect4_AI_Game:
     def _move(self, action):
         # Player's turn
         if self.turn == self.PLAYER:
-            col = action
+            print("ACTION!:")
+            print(action)
+            action = torch.tensor(action, dtype=torch.long)
+            col = torch.argmax(action).item()
             if self.is_valid_location(self.board, col):
                 row = self.get_next_open_row(self.board, col)
                 self.drop_piece(self.board, row, col, self.PLAYER_PIECE)
@@ -263,19 +268,22 @@ class Connect4_AI_Game:
 
     def play_step(self, action, reward):
         self.draw_board(self.board)
+        self.print_board(self.board)
         pygame.display.update()
 
         # 2. move
         self._move(action) # update the head
 
-        #reward = 0
+        reward = 0
         winner = None
         if self.winning_move(self.board, self.PLAYER_PIECE):
-            reward += 10
+            reward = 10
             label = self.myfont.render("Player 1 wins!!", 1, self.RED)
             winner = "PLAYER"
             self.screen.blit(label, (40, 10))
             self.game_over = True
+
+        reward = evaluate_board_state(self.board, 1, 2)
 
         if self.game_over:
                 pygame.time.wait(300)
@@ -292,16 +300,16 @@ class Connect4_AI_Game:
             row = self.get_next_open_row(self.board, col)
             self.drop_piece(self.board, row, col, self.AI_PIECE)
 
-            #reward = 0
+            reward = 0
             winner = None
             if self.winning_move(self.board, self.AI_PIECE):
-                reward -= 10
+                reward = -10
                 winner = "AI"
                 label = self.myfont.render("Player 2 wins!!", 1, self.YELLOW)
                 self.screen.blit(label, (40, 10))
                 self.game_over = True
             else:
-                reward += 0.1
+                reward = evaluate_board_state(self.board, 1, 2)
 
             self.draw_board(self.board)
 

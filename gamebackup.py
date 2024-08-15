@@ -230,10 +230,7 @@ class Connect4_AI_Game:
     def play_step(self, move):
         return move
 
-    def game_over(self, event):
-        if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
+
 
     def play_game(self):
         self.draw_board(self.board)

@@ -16,7 +16,8 @@ class Agent:
         self.epsilon = 0 # randomness
         self.gamma = 0.9 # discount rate
         self.memory = deque(maxlen=MAX_MEMORY) # popleft()
-        self.model = Linear_QNet(42, 256, 7)
+        #num_states = [6,7]
+        self.model = Linear_QNet(42, 50, 50, 7)
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
 
     def agent_move(self, game, predictedmove):
@@ -28,13 +29,15 @@ class Agent:
     def get_action(self, state):
         # random moves: tradeoff exploration / exploitation
         self.epsilon = 80 - self.n_games
+        final_move = [0,0,0,0,0,0,0]
         if random.randint(0, 200) < self.epsilon:
-            final_move = random.randint(0, 6)
+            move = random.randint(0, 6)
+            final_move[move] = 1
         else:
             state0 = torch.tensor(state, dtype=torch.float)
             prediction = self.model(state0)
             move = torch.argmax(prediction).item()
-            final_move = move
+            final_move[move] = 1
 
         return final_move
 
@@ -69,10 +72,10 @@ def train():
         turn = game.turn
 
         if turn == game.AI and not game.game_over:
-            new_reward, done, winner = game.ai_step(reward)
-            reward = new_reward
+            reward, done, winner = game.ai_step(reward)
             print("CURRENT REWARD:")
             print(reward)
+
 
         elif turn == game.PLAYER and not game.game_over:
             # get old state
@@ -80,11 +83,9 @@ def train():
 
             # get move
             final_move = agent.get_action(state_old)
-            new_reward, done, winner = game.play_step(final_move, reward)
+            reward, done, winner = game.play_step(final_move, reward)
 
             state_new = agent.get_state(game)
-
-            reward = new_reward
 
             # train short memory
             agent.train_short_memory(state_old, final_move, reward, state_new, done)
@@ -96,10 +97,13 @@ def train():
 
 
 
+
+
         elif done:
             game.check_game_over()
             # train long memory, plot result
             #game.reset()
+            agent.train_long_memory()
             agent.n_games += 1
             #agent.train_long_memory()
             if winner == "PLAYER":
